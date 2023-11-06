@@ -113,7 +113,17 @@ get_concurrent_trials = function(d) {
 }
 
 plot_concurrent_studies = function(studies) {
-  plot(mtcars$mpg, mtcars$cyl)
+  studies |>
+    select(start_date, completion_date) |>
+    get_concurrent_trials() |>
+    ggplot(aes(x = date, y = count)) +
+    geom_line(color = "blue") +  # Customize line color
+    xlab("Date") +
+    ylab("Count") +
+    labs(title = "Concurrent Trials Over Time",  # Add title
+         caption = "Source: https://clinicaltrials.gov/") +  # Add caption
+    theme_minimal() +  # Use a minimal theme
+    theme(axis.text.x = element_text(angle = 45, hjust = 1))  # Rotate x-axis labels for better readability
 }
 
 #' Create a histogram of the conditions that trials in a query are examining
