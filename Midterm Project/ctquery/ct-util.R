@@ -14,8 +14,7 @@ library(maps)
 
 con = dbConnect(
   duckdb(
-    #file.path("..", "ctrialsgov.duckdb"),
-    file.path("..", "ctgov.duckdb"),
+    "ctgov.duckdb",
     read_only = TRUE
   )
 )
@@ -53,12 +52,12 @@ query_kwds <- function(d, kwds, column, ignore_case = TRUE, match_all = FALSE) {
   filter(d, sql(query))
 }
 
-# Create a histogram of the phases returned by a brief title keyword search
-# @param d the database table.
-# @param brief_title_kw the brief title keywords to look for. This is optional.
+#' Create a histogram of the phases returned by a brief title keyword search
+#' @param x the database table.
 plot_phase_histogram = function(x) {
   # Define a fixed set of phases
   x$phase[is.na(x$phase)] = "NA"
+  # Problem 1: Fix the phase histogram so that the x-axis values are uniform regardless of the query.
   fixed_phases <- c("Early Phase 1", "Phase 1", "Phase 1/Phase 2", "Phase 2", "Phase 2/Phase 3",
                     "Phase 3", "Phase 4", "Not Applicable", "NA")  # Include all possible phases
 
@@ -113,14 +112,46 @@ get_concurrent_trials = function(d) {
   return(all_dates)
 }
 
-plot_conditions_histogram = function(x) {
-  ggplot(x, aes(x = condition_name)) +
-    geom_bar() +
-    xlab("Condition") +
-    ylab("Count") +
-    theme_bw()
+plot_concurrent_studies = function(studies) {
+  plot(mtcars$mpg, mtcars$cyl)
 }
 
+#' Create a histogram of the conditions that trials in a query are examining
+#' @param x the database table.
+plot_conditions_histogram = function(x) {
+  x_grouped <- x |> #julia edit- filtering out when a condition has at least 4 studies on it to minimize how many show up in histogram
+    #will remove when decided on better solution: is there any other way we can bucket?! tried looking for a condition category but don't see one.
+    #can we bucket on amount of studies per # of conditions? maybe not, question specifically says "showing the conditions"
+    #maybe at least for the conditions that only have one study we can list those below the histogram somehow?
+    group_by(condition_name) |>
+    summarize(n=n())
+  x <- left_join(x, x_grouped, by="condition_name") |>
+    filter(n>3)
+  
+  # count_counditions <- conditions |>
+  #   group_by(downcase_name) |>
+  #   summarize(n=n()) |>
+  #   arrange(desc(n)) |>
+  #   collect()
+  # count_counditions |>
+  #   summarize(n=n())
+  # count_counditions |>
+  #   filter(n>1) |>
+  #   summarize(n=n())
+  
+  ggplot(x, aes(x = condition_name)) +
+    geom_bar(fill = "skyblue", color = "black") +
+    xlab("Condition") +
+    ylab("Count") +
+    labs(title = "Clinical Trial Conditions Distribution",  # Add title
+         caption = "Source: https://clinicaltrials.gov/") +  # Add caption
+    scale_x_discrete(labels = scales::wrap_format(width = 15)) +  # Wrap x-axis labels for better presentation
+    theme_minimal() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1))
+}
+
+#' Create a histogram of the countries that trials in a query are coming from
+#' @param data the database table.
 plot_countries_frequency = function(data) {
   ggplot(data, aes(x = country_name)) +
     geom_bar(fill = "skyblue", color = "black") +
@@ -130,8 +161,4 @@ plot_countries_frequency = function(data) {
          caption = "Source: https://clinicaltrials.gov/") +  # Add caption
     theme_minimal() +
     theme(axis.text.x = element_text(angle = 45, hjust = 1))
-}
-
-plot_concurrent_studies = function(studies) {
-  plot(mtcars$mpg, mtcars$cyl)
 }
