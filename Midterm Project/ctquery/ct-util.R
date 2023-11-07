@@ -1,3 +1,25 @@
+# Summary:
+# This file contains a set of custom utility functions used in the Clinical Trials Query Shiny App. These functions facilitate data querying, filtering, and visualization.
+
+# Functions:
+# - query_kwds: Queries keywords in a database table and returns filtered results.
+# - plot_phase_histogram: Creates a histogram of clinical trial phases.
+# - get_concurrent_trials: Computes the number of concurrent trials at different dates.
+# - plot_concurrent_studies: Generates a plot of concurrent trials over time.
+# - plot_conditions_histogram: Produces a histogram of conditions examined in trials.
+# - plot_countries_frequency: Creates a histogram of study frequencies by country.
+
+# Usage:
+# - Import these functions to enhance data analysis and visualization.
+# - Functions in this file are integral to the 'app.R' Shiny application for clinical trials data exploration.
+
+# Dependencies:
+# - These functions rely on R packages, including 'dplyr,' 'DT,' 'ggplot2,' 'leaflet,' and 'maps.'
+# - Ensure that the 'app.R' file has access to these functions.
+
+# Notes:
+# - Detailed function documentation is available within each function definition.
+
 library(dplyr)
 library(duckdb)
 library(dplyr)
@@ -14,7 +36,8 @@ library(maps)
 
 con = dbConnect(
   duckdb(
-    "ctgov.duckdb",
+    file.path("..", "ctgov.duckdb"), # Anmol comment - need this line to run on my end
+    #"ctgov.duckdb",
     read_only = TRUE
   )
 )
@@ -137,7 +160,7 @@ plot_conditions_histogram = function(x) {
     summarize(n=n())
   x <- left_join(x, x_grouped, by="condition_name") |>
     filter(n>3)
-  
+
   # count_counditions <- conditions |>
   #   group_by(downcase_name) |>
   #   summarize(n=n()) |>
@@ -148,7 +171,7 @@ plot_conditions_histogram = function(x) {
   # count_counditions |>
   #   filter(n>1) |>
   #   summarize(n=n())
-  
+
   ggplot(x, aes(x = condition_name)) +
     geom_bar(fill = "skyblue", color = "black") +
     xlab("Condition") +

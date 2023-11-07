@@ -1,52 +1,50 @@
-#
-# This is a Shiny web application. You can run the application by clicking
-# the 'Run App' button above.
-#
-# Find out more about building applications with Shiny here:
-#
-#    http://shiny.rstudio.com/
-#
+# Summary:
+# This file defines the Shiny web application for querying, filtering, and visualizing clinical trials data. It features a user-friendly interface with various input options, tab panels for data visualization, and data export capabilities.
 
+# Sections:
+# - UI Definition: Defines the user interface layout and input elements.
+# - Server Logic: Implements the server-side functionality, including data retrieval and visualization.
+# - Data Export: Provides the ability to download queried data as a CSV file.
+
+# Usage:
+# - Source this file to run the Shiny app.
+# - Interact with the UI to query and explore clinical trials data.
+# - Utilize the 'server' logic to customize and extend app features.
+
+# Dependencies:
+# - Requires R packages such as 'shiny,' 'dplyr,' 'DT,' 'ggplot2,' 'leaflet,' and 'maps.'
+# - Ensure the 'ct-util.R' file is in the same directory for utility function access.
+
+# Notes:
+# - The app's modular structure allows for easy feature expansion.
+# - Review the server logic and utility functions in 'ct-util.R' for a comprehensive understanding.
+
+# Load the Shiny library to enable web application development
 library(shiny)
 
-# Steps to adding a feature:
-# 1. Specify the feature.
-#   - What does it do?
-#   - What will be shown?
-# 2. Specify the interface
-#   - Where should it go?
-#   - Does it enhance the user experience?
-# 3. Implement the feature without the UI
-# 4. Integrate the feature.
-
+# Source custom utility functions from 'ct-util.R' for data manipulation and visualization
 source("ct-util.R")
+
+# Define the maximum number of studies to display within the app
 max_num_studies = 1000
 
-# Define UI for application that draws a histogram
+# Define the UI layout for the Clinical Trials Query Shiny App
 ui <- fluidPage(
 
   # Application title
   titlePanel("Clinical Trials Query"),
 
-  # Sidebar with a slider input for number of bins
+  # Sidebar with input controls
   sidebarLayout(
     sidebarPanel(
 
-      # Download queried data
+      # Button to download queried data
       downloadButton("download_csv", "Download CSV"),
 
+      # Text input for entering keywords related to brief titles
       textInput("brief_title_kw", "Brief title keywords"),
-      # checkboxGroupInput("source_class",
-      #                    label = h3("Sponsor Type"),
-      #                    choices = list("Federal" = "FED",
-      #                                   "Individual" = "INDIV",
-      #                                   "Industry" = "INDUSTRY",
-      #                                   "Network" = "NETWORK",
-      #                                   "NIH" = "NIH",
-      #                                   "Other" = "OTHER",
-      #                                   "Other gov" = "OTHER_GOV",
-      #                                   "Unknown" = "Unknown")),
-      # Problem 3: Add a drop-down so that queries can be subsetted on sponsor type.
+
+      # Dropdown input for selecting sponsor types
       selectizeInput("source_class",
                      label = h3("Sponsor Type"),
                      choices = list(
@@ -65,34 +63,44 @@ ui <- fluidPage(
                        style = 'btn-primary',
                        dropdown = TRUE
                      )
+      ),
+
+      # Checkbox input for filtering FDA regulated drugs
+      checkboxGroupInput("is_fda_filter",
+                         label = "FDA Regulated Drug",
+                         choices = c("TRUE" = "TRUE", "FALSE" = "FALSE")
       )
     ),
 
-    # Show a plot of the generated distribution
+    # Main panel with tabs for data visualization
     mainPanel(
       tabsetPanel(
-         type = "tabs",
-         tabPanel("Phase", plotOutput("phase_plot")),
-         tabPanel("Concurrent", plotOutput("concurrent_plot")),
-         tabPanel("Conditions",
-                  #div(class = "scrollable-tab", style='overflow-x: scroll'), #trying to see if I can add a horizontal scroll but doesn't seem to be working
-                      plotOutput("conditions_plot")),
-         tabPanel("Countries", plotOutput("countries_plot")),
-       ),
+        type = "tabs",
+        tabPanel("Phase", plotOutput("phase_plot")),
+        tabPanel("Concurrent", plotOutput("concurrent_plot")),
+        tabPanel("Conditions",
+                 plotOutput("conditions_plot"),
+                 HTML("<p style='text-align: center; color: gray;'>Note: A keyword must be entered, or sponsor selected to render the plot.</p>"),
+                 HTML("<p style='text-align: center; color: gray;'>[TEMPORARY] Dev note: Currently only showing conditions which appear >3 times.</p>")
+        ),
+        tabPanel("Countries", plotOutput("countries_plot")),
+      ),
+      # Data table to display query results
       dataTableOutput("trial_table")
     )
   )
 )
 
-# Define server logic required to draw a histogram
+# Define the server logic for the Clinical Trials Query Shiny App
 server <- function(input, output) {
 
+  # Define a reactive function to retrieve and process studies data
   get_studies = reactive({
     if (input$brief_title_kw != "") {
       si = input$brief_title_kw |>
-           strsplit(",") |>
-           unlist() |>
-           trimws()
+        strsplit(",") |>
+        unlist() |>
+        trimws()
       ret = query_kwds(studies, si, "brief_title", match_all = TRUE)
     } else {
       ret = studies
@@ -106,11 +114,22 @@ server <- function(input, output) {
     ret = ret |>
       left_join(conditions |> rename(condition_name = downcase_name), by = "nct_id") #julia edit- trying downcase name, will revert to "name" column when done
 
+    # Check the selected options in the checkbox input
+    if ("TRUE" %in% input$is_fda_filter) {
+      ret <- ret %>%
+        filter(is_fda_regulated_drug == TRUE)
+    }
+
+    if ("FALSE" %in% input$is_fda_filter) {
+      ret <- ret %>%
+        filter(is_fda_regulated_drug == FALSE)
+    }
+
     # We will not include countries that have been removed
     filtered_countries <- countries %>%
       filter(!removed) %>%
       rename(country_name = name)
-    
+
     # LEFT JOIN filtered countries data into the studies data based on nct_id
     ret = ret |>
       left_join(filtered_countries, by = "nct_id")
@@ -118,7 +137,7 @@ server <- function(input, output) {
     ret |>
       head(max_num_studies) |>
       collect()
-  }) 
+  })
 
   # Phase histogram
   output$phase_plot = renderPlot({
@@ -137,7 +156,7 @@ server <- function(input, output) {
   output$conditions_plot = renderPlot({
     if (input$brief_title_kw != "" || !is.null(input$source_class)) { # julia edit - histogram will only render if there is a search keyword or sponsor type selected
       get_studies() |>
-      plot_conditions_histogram()
+        plot_conditions_histogram()
     } else {
       print("Enter a keyword or select a sponsor to render plot")
     }
@@ -147,7 +166,7 @@ server <- function(input, output) {
   output$countries_plot = renderPlot({
     get_studies() |>
       plot_countries_frequency()
-      #plot_countries_frequency_map()
+    #plot_countries_frequency_map()
   })
 
   # Output a clean table of results of query
@@ -160,7 +179,6 @@ server <- function(input, output) {
   })
 
   # Define the server logic for downloading data as CSV
-  # In the server logic
   output$download_csv <- downloadHandler(
     filename = function() {
       # Generate a dynamic file name with a description of the query
@@ -172,7 +190,6 @@ server <- function(input, output) {
       write.csv(data, file, row.names = FALSE)
     }
   )
-
 }
 
 # Run the application
