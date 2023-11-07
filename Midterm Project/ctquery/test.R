@@ -25,7 +25,7 @@ con = dbConnect(
 if (length(dbListTables(con)) == 0) {
   stop("Problem reading from connection.")
 }
-studies = tbl(con, "studies")
+studies = tbl(con, "studies") |> collect()
 sponsors = tbl(con, "sponsors")
 countries = tbl(con, "countries") |> collect()
 country_counts <- table(countries$name)
@@ -37,3 +37,9 @@ conditions_counts <- head(conditions$name)
 test <- conditions |> collect() |> head(1000)
 test
 #LEFT JOIN on nct_id between studies and conditions (join conditions into studies)
+
+
+#could filter studies by 'overall_status' as well to see which studies are active, or enrolling etc.
+#woudl be useful for patients, industry research?
+
+#a checkbox would also be helpful to filter by the 4 is_... variables (options for true and false)
