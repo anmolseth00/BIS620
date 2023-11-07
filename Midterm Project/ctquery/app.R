@@ -61,14 +61,36 @@ ui <- fluidPage(
                      options = list(
                        placeholder = 'Select sponsor types',
                        style = 'btn-primary',
-                       dropdown = TRUE
-                     )
-      ),
+                       dropdown = TRUE)
+                     ),
+      
+      # Dropdown input for filtering on status
+      selectizeInput("overall_status", label = h3("Study Status"), 
+                     choices = list("Unknown" = "Unknown status",
+                                    "Completed" = "Completed",
+                                    "Withdrawn" = "Withdrawn",
+                                    "Recruiting" = "Recruiting",
+                                    "Terminated" = "Terminated",
+                                    "Active, not recruiting" = "Active, not recruiting",
+                                    "Suspended" = "Suspended",
+                                    "Enrolling by invitation" = "Enrolling by invitation",
+                                    "Not yet recruiting" = "Not yet recruiting",
+                                    "Withheld" = "Withheld",
+                                    "No longer available" = "No longer available",
+                                    "Approved for marketing" = "Approved for marketing",
+                                    "Available" = "Available",
+                                    "Temporarily not available" = "Temporarily not available"),
+                     multiple = TRUE,
+                     options = list(
+                       placeholder = 'Select stati',
+                       style = 'btn-primary',
+                       dropdown = TRUE)
+                     ),
 
       # Checkbox input for filtering FDA regulated drugs
       checkboxGroupInput("is_fda_filter",
                          label = "FDA Regulated Drug",
-                         choices = c("TRUE" = "TRUE", "FALSE" = "FALSE")
+                         choices = c("Yes" = "TRUE", "No" = "FALSE")
       )
     ),
 
@@ -105,16 +127,24 @@ server <- function(input, output) {
     } else {
       ret = studies
     }
+    
+    # Filter data by source_class
     if (!is.null(input$source_class)) {
       ret = ret |>
         filter(source_class %in% !!input$source_class)
+    }
+    
+    # Filter data by status
+    if (!is.null(input$overall_status)) {
+      ret = ret |>
+        filter(overall_status %in% !!input$overall_status)
     }
 
     # LEFT JOIN conditions data into the studies data based on nct_id
     ret = ret |>
       left_join(conditions |> rename(condition_name = downcase_name), by = "nct_id") #julia edit- trying downcase name, will revert to "name" column when done
 
-    # Check the selected options in the checkbox input
+    # Check the selected options in the FDA checkbox input
     if ("TRUE" %in% input$is_fda_filter) {
       ret <- ret %>%
         filter(is_fda_regulated_drug == TRUE)
@@ -154,7 +184,7 @@ server <- function(input, output) {
   # Conditions histogram
   # Problem 2: Add a new tab that gives a histogram showing the conditions that trials in a query are examining.
   output$conditions_plot = renderPlot({
-    if (input$brief_title_kw != "" || !is.null(input$source_class)) { # julia edit - histogram will only render if there is a search keyword or sponsor type selected
+    if (input$brief_title_kw != "" || !is.null(input$source_class) || !is.null(input$is_fda_filter) || !is.null(input$overall_status)) { # julia edit - histogram will only render if there is a search keyword or sponsor type selected
       get_studies() |>
         plot_conditions_histogram()
     } else {
