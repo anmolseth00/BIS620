@@ -9,15 +9,6 @@
 
 library(shiny)
 
-# 0. Midterm scheduling
-
-# 1. Clean up the table column names X
-# 2. Allow multiple brief title keywords X
-# 3. Create a histogram of the phase
-# 4. Organize files.
-# 5. Fix the Phase plot
-# 6. Plot the concurrent studies (adding a feature/capability).
-
 # Steps to adding a feature:
 # 1. Specify the feature.
 #   - What does it do?
@@ -55,6 +46,7 @@ ui <- fluidPage(
       #                                   "Other" = "OTHER",
       #                                   "Other gov" = "OTHER_GOV",
       #                                   "Unknown" = "Unknown")),
+      # Problem 3: Add a drop-down so that queries can be subsetted on sponsor type.
       selectizeInput("source_class",
                      label = h3("Sponsor Type"),
                      choices = list(
@@ -82,7 +74,9 @@ ui <- fluidPage(
          type = "tabs",
          tabPanel("Phase", plotOutput("phase_plot")),
          tabPanel("Concurrent", plotOutput("concurrent_plot")),
-         tabPanel("Conditions", plotOutput("conditions_plot")),
+         tabPanel("Conditions",
+                  #div(class = "scrollable-tab", style='overflow-x: scroll'), #trying to see if I can add a horizontal scroll but doesn't seem to be working
+                      plotOutput("conditions_plot")),
          tabPanel("Countries", plotOutput("countries_plot")),
        ),
       dataTableOutput("trial_table")
@@ -110,52 +104,53 @@ server <- function(input, output) {
 
     # LEFT JOIN conditions data into the studies data based on nct_id
     ret = ret |>
-      left_join(conditions |> rename(condition_name = name), by = "nct_id")
+      left_join(conditions |> rename(condition_name = downcase_name), by = "nct_id") #julia edit- trying downcase name, will revert to "name" column when done
 
-    # # We will not include countries that have been removed
+    # We will not include countries that have been removed
     filtered_countries <- countries %>%
       filter(!removed) %>%
       rename(country_name = name)
-    #
-    # # LEFT JOIN filtered countries data into the studies data based on nct_id
+    
+    # LEFT JOIN filtered countries data into the studies data based on nct_id
     ret = ret |>
       left_join(filtered_countries, by = "nct_id")
 
     ret |>
       head(max_num_studies) |>
       collect()
-  })
+  }) 
 
+  # Phase histogram
   output$phase_plot = renderPlot({
     get_studies() |>
       plot_phase_histogram()
   })
 
+  # Concurrent studies plot
   output$concurrent_plot = renderPlot({
     get_studies() |>
-      select(start_date, completion_date) |>
-      get_concurrent_trials() |>
-      ggplot(aes(x = date, y = count)) +
-      geom_line(color = "blue") +  # Customize line color
-      xlab("Date") +
-      ylab("Count") +
-      labs(title = "Concurrent Trials Over Time",  # Add title
-           caption = "Source: https://clinicaltrials.gov/") +  # Add caption
-      theme_minimal() +  # Use a minimal theme
-      theme(axis.text.x = element_text(angle = 45, hjust = 1))  # Rotate x-axis labels for better readability
+      plot_concurrent_studies()
   })
 
+  # Conditions histogram
+  # Problem 2: Add a new tab that gives a histogram showing the conditions that trials in a query are examining.
   output$conditions_plot = renderPlot({
-    get_studies() |>
+    if (input$brief_title_kw != "" || !is.null(input$source_class)) { # julia edit - histogram will only render if there is a search keyword or sponsor type selected
+      get_studies() |>
       plot_conditions_histogram()
+    } else {
+      print("Enter a keyword or select a sponsor to render plot")
+    }
   })
 
+  # Countries histogram
   output$countries_plot = renderPlot({
     get_studies() |>
       plot_countries_frequency()
       #plot_countries_frequency_map()
   })
 
+  # Output a clean table of results of query
   output$trial_table = renderDataTable({
     get_studies() |>
       head(max_num_studies) |>
