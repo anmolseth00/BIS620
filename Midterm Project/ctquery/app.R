@@ -38,15 +38,12 @@ ui <- fluidPage(
   sidebarLayout(
     sidebarPanel(
 
-      # Button to download queried data
-      downloadButton("download_csv", "Download CSV"),
+      # 1. Text input for entering keywords related to brief titles
+      textInput("brief_title_kw", label = h4("Brief Title Keywords")),
 
-      # Text input for entering keywords related to brief titles
-      textInput("brief_title_kw", "Brief title keywords"),
-
-      # Dropdown input for selecting sponsor types
+      # 2. Dropdown input for selecting sponsor types
       selectizeInput("source_class",
-                     label = h3("Sponsor Type"),
+                     label = h4("Sponsor Type"),
                      choices = list(
                        "Federal" = "FED",
                        "Individual" = "INDIV",
@@ -61,15 +58,40 @@ ui <- fluidPage(
                      options = list(
                        placeholder = 'Select sponsor types',
                        style = 'btn-primary',
-                       dropdown = TRUE
-                     )
-      ),
+                       dropdown = TRUE)
+                     ),
+      
+      # 3. Dropdown input for filtering on status
+      selectizeInput("overall_status", label = h4("Study Status"), 
+                     choices = list("Unknown" = "Unknown status",
+                                    "Completed" = "Completed",
+                                    "Withdrawn" = "Withdrawn",
+                                    "Recruiting" = "Recruiting",
+                                    "Terminated" = "Terminated",
+                                    "Active, not recruiting" = "Active, not recruiting",
+                                    "Suspended" = "Suspended",
+                                    "Enrolling by invitation" = "Enrolling by invitation",
+                                    "Not yet recruiting" = "Not yet recruiting",
+                                    "Withheld" = "Withheld",
+                                    "No longer available" = "No longer available",
+                                    "Approved for marketing" = "Approved for marketing",
+                                    "Available" = "Available",
+                                    "Temporarily not available" = "Temporarily not available"),
+                     multiple = TRUE,
+                     options = list(
+                       placeholder = 'Select stati',
+                       style = 'btn-primary',
+                       dropdown = TRUE)
+                     ),
 
-      # Checkbox input for filtering FDA regulated drugs
+      # 4. Checkbox input for filtering FDA regulated drugs
       checkboxGroupInput("is_fda_filter",
-                         label = "FDA Regulated Drug",
-                         choices = c("TRUE" = "TRUE", "FALSE" = "FALSE")
-      )
+                         label = h4("FDA Regulated Drug"),
+                         choices = c("Yes" = "TRUE", "No" = "FALSE")
+      ),
+      
+      # 5. Button to download queried data # J: Is it cool with you that I moved this to the bottom? just thought the user could hit download after selecting all their filters
+      downloadButton("download_csv", "Download CSV")
     ),
 
     # Main panel with tabs for data visualization
@@ -80,10 +102,11 @@ ui <- fluidPage(
         tabPanel("Concurrent", plotOutput("concurrent_plot")),
         tabPanel("Conditions",
                  plotOutput("conditions_plot"),
-                 HTML("<p style='text-align: center; color: gray;'>Note: A keyword must be entered, or sponsor selected to render the plot.</p>"),
+                 HTML("<p style='text-align: center; color: gray;'>Note: A keyword must be entered, or filter selected to render the plot.</p>"),
                  HTML("<p style='text-align: center; color: gray;'>[TEMPORARY] Dev note: Currently only showing conditions which appear >3 times.</p>")
         ),
         tabPanel("Countries", plotOutput("countries_plot")),
+        tabPanel("Interventions", plotOutput("interventions_plot"))
       ),
       # Data table to display query results
       dataTableOutput("trial_table")
@@ -96,6 +119,7 @@ server <- function(input, output) {
 
   # Define a reactive function to retrieve and process studies data
   get_studies = reactive({
+    # 1. Filter data by Brief Title Keywords
     if (input$brief_title_kw != "") {
       si = input$brief_title_kw |>
         strsplit(",") |>
@@ -105,25 +129,32 @@ server <- function(input, output) {
     } else {
       ret = studies
     }
+    
+    # 2. Filter data by Sponsor Type
     if (!is.null(input$source_class)) {
       ret = ret |>
         filter(source_class %in% !!input$source_class)
     }
-
-    # LEFT JOIN conditions data into the studies data based on nct_id
-    ret = ret |>
-      left_join(conditions |> rename(condition_name = downcase_name), by = "nct_id") #julia edit- trying downcase name, will revert to "name" column when done
-
-    # Check the selected options in the checkbox input
+    
+    # 3. Filter data by Study Status
+    if (!is.null(input$overall_status)) {
+      ret = ret |>
+        filter(overall_status %in% !!input$overall_status)
+    }
+    
+    # 4. Filter data by FDA Regulated Drug
     if ("TRUE" %in% input$is_fda_filter) {
       ret <- ret %>%
         filter(is_fda_regulated_drug == TRUE)
     }
-
     if ("FALSE" %in% input$is_fda_filter) {
       ret <- ret %>%
         filter(is_fda_regulated_drug == FALSE)
     }
+
+    # LEFT JOIN conditions data into the studies data based on nct_id
+    ret = ret |>
+      left_join(conditions |> rename(condition_name = name), by = "nct_id")
 
     # We will not include countries that have been removed
     filtered_countries <- countries %>%
@@ -133,40 +164,50 @@ server <- function(input, output) {
     # LEFT JOIN filtered countries data into the studies data based on nct_id
     ret = ret |>
       left_join(filtered_countries, by = "nct_id")
+    
+    # LEFT JOIN intervention type data into studies data based on nct_id
+    ret = ret |>
+      left_join(interventions, by="nct_id")
 
     ret |>
       head(max_num_studies) |>
       collect()
   })
 
-  # Phase histogram
+  # 1. Phase histogram
   output$phase_plot = renderPlot({
     get_studies() |>
       plot_phase_histogram()
   })
 
-  # Concurrent studies plot
+  # 2. Concurrent studies plot
   output$concurrent_plot = renderPlot({
     get_studies() |>
       plot_concurrent_studies()
   })
 
-  # Conditions histogram
+  # 3. Conditions histogram
   # Problem 2: Add a new tab that gives a histogram showing the conditions that trials in a query are examining.
   output$conditions_plot = renderPlot({
-    if (input$brief_title_kw != "" || !is.null(input$source_class)) { # julia edit - histogram will only render if there is a search keyword or sponsor type selected
+    if (input$brief_title_kw != "" || !is.null(input$source_class) || !is.null(input$is_fda_filter) || !is.null(input$overall_status)) { # histogram will only render if there is a search keyword or sponsor type selected
       get_studies() |>
         plot_conditions_histogram()
     } else {
-      print("Enter a keyword or select a sponsor to render plot")
+      print("Enter a keyword or select a filter to render plot")
     }
   })
 
-  # Countries histogram
+  # 4. Countries histogram
   output$countries_plot = renderPlot({
     get_studies() |>
       plot_countries_frequency()
     #plot_countries_frequency_map()
+  })
+  
+  # 5. Interventions histogram
+  output$interventions_plot = renderPlot({
+    get_studies() |>
+      plot_interventions_histogram()
   })
 
   # Output a clean table of results of query

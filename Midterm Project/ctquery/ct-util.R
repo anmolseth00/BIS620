@@ -36,8 +36,8 @@ library(maps)
 
 con = dbConnect(
   duckdb(
-    file.path("..", "ctgov.duckdb"), # Anmol comment - need this line to run on my end
-    #"ctgov.duckdb",
+    #file.path("..", "ctgov.duckdb"), # Anmol comment - need this line to run on my end
+    "ctgov.duckdb", #haha sorry about that! we can remove this line when we're done
     read_only = TRUE
   )
 )
@@ -49,6 +49,7 @@ studies = tbl(con, "studies")
 sponsors = tbl(con, "sponsors")
 conditions = tbl(con, "conditions")
 countries = tbl(con, "countries")
+interventions = tbl(con, "interventions")
 
 #' @title Query keywords from a database table.
 #' @description Description goes here.
@@ -150,37 +151,23 @@ plot_concurrent_studies = function(studies) {
 }
 
 #' Create a histogram of the conditions that trials in a query are examining
-#' @param x the database table.
-plot_conditions_histogram = function(x) {
-  x_grouped <- x |> #julia edit- filtering out when a condition has at least 4 studies on it to minimize how many show up in histogram
-    #will remove when decided on better solution: is there any other way we can bucket?! tried looking for a condition category but don't see one.
-    #can we bucket on amount of studies per # of conditions? maybe not, question specifically says "showing the conditions"
-    #maybe at least for the conditions that only have one study we can list those below the histogram somehow?
+#' @param data the database table.
+plot_conditions_histogram = function(data) {
+  x_grouped <- data |>
     group_by(condition_name) |>
     summarize(n=n())
-  x <- left_join(x, x_grouped, by="condition_name") |>
-    filter(n>3)
+  data <- left_join(data, x_grouped, by="condition_name") |>
+    filter(n>3) # filtering out when a condition has at least 4 studies on it to minimize how many show up in histogram
 
-  # count_counditions <- conditions |>
-  #   group_by(downcase_name) |>
-  #   summarize(n=n()) |>
-  #   arrange(desc(n)) |>
-  #   collect()
-  # count_counditions |>
-  #   summarize(n=n())
-  # count_counditions |>
-  #   filter(n>1) |>
-  #   summarize(n=n())
-
-  ggplot(x, aes(x = condition_name)) +
+  ggplot(data, aes(x = condition_name)) +
     geom_bar(fill = "skyblue", color = "black") +
     xlab("Condition") +
     ylab("Count") +
-    labs(title = "Clinical Trial Conditions Distribution",  # Add title
+    labs(title = "Clinical Trial Condition Distribution",  # Add title
          caption = "Source: https://clinicaltrials.gov/") +  # Add caption
-    scale_x_discrete(labels = scales::wrap_format(width = 15)) +  # Wrap x-axis labels for better presentation
+    #scale_x_discrete(labels = scales::wrap_format(width = 15)) +  # Wrap x-axis labels for better presentation
     theme_minimal() +
-    theme(axis.text.x = element_text(angle = 45, hjust = 1))
+    theme(axis.text.x = element_text(size = 10, angle = 90, vjust = .5, hjust = 1))
 }
 
 #' Create a histogram of the countries that trials in a query are coming from
@@ -190,7 +177,20 @@ plot_countries_frequency = function(data) {
     geom_bar(fill = "skyblue", color = "black") +
     xlab("Country") +
     ylab("Frequency") +
-    labs(title = "Frequency of Studies by Country",  # Add title
+    labs(title = "Clinical Trial Country Distribution",  # Add title
+         caption = "Source: https://clinicaltrials.gov/") +  # Add caption
+    theme_minimal() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1))
+}
+
+#' Create a histogram of the intervention types that trials in a query are coming from
+#' @param data the database table.
+plot_interventions_histogram = function(data) {
+  ggplot(data, aes(x = intervention_type)) +
+    geom_bar(fill = "skyblue", color = "black") +
+    xlab("Country") +
+    ylab("Frequency") +
+    labs(title = "Clinical Trial Intervention Distribution",  # Add title
          caption = "Source: https://clinicaltrials.gov/") +  # Add caption
     theme_minimal() +
     theme(axis.text.x = element_text(angle = 45, hjust = 1))
