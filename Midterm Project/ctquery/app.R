@@ -90,7 +90,13 @@ ui <- fluidPage(
                          choices = c("Yes" = "TRUE", "No" = "FALSE")
       ),
       
-      # 5. Button to download queried data # J: Is it cool with you that I moved this to the bottom? just thought the user could hit download after selecting all their filters
+      # 5. Checkbox input for filtering FDA regulated devices
+      checkboxGroupInput("is_fda_device_filter",
+                         label = h4("FDA Regulated Device"),
+                         choices = c("Yes" = "TRUE", "No" = "FALSE")
+      ),
+      
+      # 6. Button to download queried data
       downloadButton("download_csv", "Download CSV")
     ),
 
@@ -154,6 +160,16 @@ server <- function(input, output) {
     if ("FALSE" %in% input$is_fda_filter) {
       ret <- ret %>%
         filter(is_fda_regulated_drug == FALSE)
+    }
+    
+    # 5. Filter data by FDA Regulated Device
+    if ("TRUE" %in% input$is_fda_device_filter) {
+      ret <- ret %>%
+        filter(is_fda_regulated_device == TRUE)
+    }
+    if ("FALSE" %in% input$is_fda_device_filter) {
+      ret <- ret %>%
+        filter(is_fda_regulated_device == FALSE)
     }
 
     # LEFT JOIN conditions data into the studies data based on nct_id
