@@ -153,21 +153,44 @@ plot_concurrent_studies = function(studies) {
 #' Create a histogram of the conditions that trials in a query are examining
 #' @param data the database table.
 plot_conditions_histogram = function(data) {
+  # Find the top 5 most common conditions
   x_grouped <- data |>
     group_by(condition_name) |>
-    summarize(n=n())
-  data <- left_join(data, x_grouped, by="condition_name") |>
-    filter(n>3) # filtering out when a condition has at least 4 studies on it to minimize how many show up in histogram
-
-  ggplot(data, aes(x = condition_name)) +
-    geom_bar(fill = "skyblue", color = "black") +
+    summarize(n=n()) |>
+    arrange(desc(n))
+  
+  top_conditions <- x_grouped$condition_name |>
+    head(5)
+  
+  # Create a new column that determines whether the study is in one of those top 5 conditions or not
+  x_grouped$condition_group <- ifelse(x_grouped$condition_name %in% top_conditions, x_grouped$condition_name, "Other")
+  
+  # Define a fixed set of conditions
+  fixed_conditions <- append(top_conditions, "Other")
+  
+  # Count condition frequencies
+  condition_counts <- x_grouped |>
+    group_by(condition_group)  |>
+    summarize(total= sum(n))
+  #table(factor(ret$condition_group, levels = fixed_conditions))
+  
+  # Create a data frame with the fixed conditions and their counts
+  condition_data <- data.frame(Condition = condition_counts$condition_group, Count = as.numeric(condition_counts$total))
+  
+  # Order conditions and create labels
+  condition_data$Condition <- factor(condition_data$Condition, levels = fixed_conditions)
+  
+  # Plot
+  ggplot(condition_data, aes(x = Condition, y = Count)) +
+    geom_col(fill = "skyblue", color = "black") +
     xlab("Condition") +
     ylab("Count") +
     labs(title = "Clinical Trial Condition Distribution",  # Add title
          caption = "Source: https://clinicaltrials.gov/") +  # Add caption
-    #scale_x_discrete(labels = scales::wrap_format(width = 15)) +  # Wrap x-axis labels for better presentation
-    theme_minimal() +
-    theme(axis.text.x = element_text(size = 10, angle = 90, vjust = .5, hjust = 1))
+    scale_x_discrete(labels = scales::wrap_format(width = 15)) +  # Wrap x-axis labels for better presentation
+    scale_y_log10() + # Scale y to better see smaller buckets
+    theme_minimal() + # Use a minimal theme
+    theme(axis.text.x = element_text(angle = 45, hjust = 1)) # Rotate x-axis labels for better readability
 }
 
 #' Create a histogram of the countries that trials in a query are coming from
@@ -179,8 +202,8 @@ plot_countries_frequency = function(data) {
     ylab("Frequency") +
     labs(title = "Clinical Trial Country Distribution",  # Add title
          caption = "Source: https://clinicaltrials.gov/") +  # Add caption
-    theme_minimal() +
-    theme(axis.text.x = element_text(angle = 45, hjust = 1))
+    theme_minimal() + # Use a minimal theme
+    theme(axis.text.x = element_text(angle = 45, hjust = 1)) # Rotate x-axis labels for better readability
 }
 
 #' Create a histogram of the intervention types that trials in a query are coming from
@@ -192,6 +215,6 @@ plot_interventions_histogram = function(data) {
     ylab("Frequency") +
     labs(title = "Clinical Trial Intervention Distribution",  # Add title
          caption = "Source: https://clinicaltrials.gov/") +  # Add caption
-    theme_minimal() +
-    theme(axis.text.x = element_text(angle = 45, hjust = 1))
+    theme_minimal() + # Use a minimal theme
+    theme(axis.text.x = element_text(angle = 45, hjust = 1)) # Rotate x-axis labels for better readability
 }

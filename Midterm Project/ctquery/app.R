@@ -100,11 +100,7 @@ ui <- fluidPage(
         type = "tabs",
         tabPanel("Phase", plotOutput("phase_plot")),
         tabPanel("Concurrent", plotOutput("concurrent_plot")),
-        tabPanel("Conditions",
-                 plotOutput("conditions_plot"),
-                 HTML("<p style='text-align: center; color: gray;'>Note: A keyword must be entered, or filter selected to render the plot.</p>"),
-                 HTML("<p style='text-align: center; color: gray;'>[TEMPORARY] Dev note: Currently only showing conditions which appear >3 times.</p>")
-        ),
+        tabPanel("Conditions", plotOutput("conditions_plot")),
         tabPanel("Countries", plotOutput("countries_plot")),
         tabPanel("Interventions", plotOutput("interventions_plot"))
       ),
@@ -189,12 +185,8 @@ server <- function(input, output) {
   # 3. Conditions histogram
   # Problem 2: Add a new tab that gives a histogram showing the conditions that trials in a query are examining.
   output$conditions_plot = renderPlot({
-    if (input$brief_title_kw != "" || !is.null(input$source_class) || !is.null(input$is_fda_filter) || !is.null(input$overall_status)) { # histogram will only render if there is a search keyword or sponsor type selected
-      get_studies() |>
-        plot_conditions_histogram()
-    } else {
-      print("Enter a keyword or select a filter to render plot")
-    }
+    get_studies() |>
+      plot_conditions_histogram()
   })
 
   # 4. Countries histogram
