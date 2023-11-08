@@ -15,6 +15,7 @@ ctgov.duckdb located in 'Midterm Project', 1 folder above ctquery
 # Organization of Files:
 # - 'app.R': Contains the Shiny web application UI and server logic.
 # - 'ct-util.R': Defines custom utility functions used in the app.
+# - 'test.R': Tests the custom utility functions defined in ct-util.R.
 
 # Usage:
 # - Run the Shiny app by sourcing 'app.R'.
