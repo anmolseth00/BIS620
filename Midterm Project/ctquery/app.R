@@ -12,11 +12,10 @@
 # - Utilize the 'server' logic to customize and extend app features.
 
 # Dependencies:
-# - Requires R packages such as 'shiny,' 'dplyr,' 'DT,' 'ggplot2,' 'leaflet,' and 'maps.'
+# - Requires R packages such as 'shiny' 'dplyr' 'DT' 'ggplot2'
 # - Ensure the 'ct-util.R' file is in the same directory for utility function access.
 
 # Notes:
-# - The app's modular structure allows for easy feature expansion.
 # - Review the server logic and utility functions in 'ct-util.R' for a comprehensive understanding.
 
 # Load the Shiny library to enable web application development
@@ -41,7 +40,7 @@ ui <- fluidPage(
       # 1. Text input for entering keywords related to brief titles
       textInput("brief_title_kw", label = h4("Brief Title Keywords")),
 
-      # 2. Dropdown input for selecting sponsor types
+      # 2. Drop down input for selecting sponsor types
       selectizeInput("source_class",
                      label = h4("Sponsor Type"),
                      choices = list(
@@ -84,13 +83,13 @@ ui <- fluidPage(
                        dropdown = TRUE)
                      ),
 
-      # 4. Checkbox input for filtering FDA regulated drugs
+      # 4. Check box input for filtering FDA regulated drugs
       checkboxGroupInput("is_fda_filter",
                          label = h4("FDA Regulated Drug"),
                          choices = c("Yes" = "TRUE", "No" = "FALSE")
       ),
       
-      # 5. Checkbox input for filtering FDA regulated devices
+      # 5. Check box input for filtering FDA regulated devices
       checkboxGroupInput("is_fda_device_filter",
                          label = h4("FDA Regulated Device"),
                          choices = c("Yes" = "TRUE", "No" = "FALSE")
@@ -108,16 +107,25 @@ ui <- fluidPage(
         tabPanel("Concurrent", plotOutput("concurrent_plot")),
         tabPanel("Conditions", plotOutput("conditions_plot"),
                  div(
-                   numericInput("num_top_conditions", "Number of Top Conditions", value = 5, min = 1, max = 10)
+                   numericInput("num_top_conditions", 
+                                "Number of Top Conditions", 
+                                value = 5, 
+                                min = 1, 
+                                max = 10)
                  )
                  ),
         tabPanel("Countries", plotOutput("countries_plot"),
                  div(
-                   numericInput("num_top_countries", "Number of Top Countries", value = 5, min = 1, max = 10)
-                    )
+                   numericInput("num_top_countries", 
+                                "Number of Top Countries", 
+                                value = 5, 
+                                min = 1, 
+                                max = 10)
+                 )
                  ),
         tabPanel("Interventions", plotOutput("interventions_plot"))
       ),
+      
       # Data table to display query results
       dataTableOutput("trial_table")
     )
@@ -129,6 +137,7 @@ server <- function(input, output) {
 
   # Define a reactive function to retrieve and process studies data
   get_studies = reactive({
+    
     # 1. Filter data by Brief Title Keywords
     if (input$brief_title_kw != "") {
       si = input$brief_title_kw |>
@@ -230,8 +239,10 @@ server <- function(input, output) {
     get_studies() |>
       head(max_num_studies) |>
       select(nct_id, brief_title, start_date, completion_date) |>
-      rename(`NCT ID` = nct_id, `Brief Title` = brief_title,
-             `Start Date` = start_date, `Completion Date` = completion_date)
+      rename(`NCT ID` = nct_id, 
+             `Brief Title` = brief_title,
+             `Start Date` = start_date, 
+             `Completion Date` = completion_date)
   })
 
   # Define the server logic for downloading data as CSV

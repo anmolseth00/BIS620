@@ -1,0 +1,251 @@
+---
+title: "Feature Documentation"
+author: "Julia Stiller & Anmol Seth"
+date: "2023-11-08"
+output: html_document
+---
+
+---
+
+# Feature Documentation
+
+## Feature 1: Download Queried Data
+
+### Motivation:
+- **Purpose:** Enable users to save and use the queried data externally.
+- **Enhancement:** Enhance the utility of the application by providing a data export option.
+
+### Description:
+1. **UI Element:**
+   - Create a new button in the Shiny app's UI for exporting data.
+2. **Server-side Implementation:**
+   - Define a server-side function that generates a CSV file from the query results.
+3. **User Interaction:**
+   - Provide a way for users to trigger the export (e.g., a "Download CSV" button).
+4. **File Naming:**
+   - Queries are included in download name to distinguish between files.
+
+### Use:
+
+**Direct Function Call:**
+```R
+output$download_csv <- downloadHandler(
+    filename = function() {
+      # Generate a dynamic file name with a description of the query
+      query_description <- paste("query_results", input$brief_title_kw, ".csv", sep = "_")
+      return(query_description)
+    },
+    content = function(file) {
+      data <- get_studies()
+      write.csv(data, file, row.names = FALSE)
+    }
+  )
+```
+- **Parameters:** 
+  - `query_results` - Dataframe containing the queried results.
+- **Returns:** CSV file with the queried data.
+
+**Through the App:**
+- User clicks "Download CSV" button on the UI.
+- Application exports queried data as a CSV file.
+
+---
+
+## Feature 2: Visualize Country Frequencies
+
+### Motivation:
+- **Purpose:** Enable users to see how many studies come from a particular country.
+- **Use Case:** Useful for patients looking to join studies in a specific country.
+
+### Description:
+1. **UI Element:**
+   - New tab to show a histogram of studies by country.
+   - Parameter `num_countries` to specify the number of countries to visualize.
+   - "Other" column to represent studies from countries not in the top N.
+
+### Use:
+
+**Direct Function Call:**
+```R
+plot_countries_frequency = function(data, num_top_countries) {
+  # Find the top n most common countries
+  country_grouped <- data |>
+    group_by(country_name) |>
+    summarize(n = n()) |>
+    arrange(desc(n))
+  
+  top_countries <- country_grouped$country_name |>
+    head(num_top_countries)
+  
+  # Create a new column that determines whether the study is in one of those top n countries or not
+  country_grouped$country_group <- ifelse(country_grouped$country_name %in% top_countries, 
+                                          country_grouped$country_name, 
+                                          "Other")
+  
+  # Define a fixed set of countries
+  fixed_countries <- append(top_countries, "Other")
+  
+  # Count country frequencies
+  country_counts <- country_grouped |>
+    group_by(country_group)  |>
+    summarize(total = sum(n))
+  
+  # Create a data frame with the fixed countries and their counts
+  country_data <- data.frame(Country = country_counts$country_group, Count = as.numeric(country_counts$total))
+  
+  # Order countries and create labels
+  country_data$Country <- factor(country_data$Country, levels = fixed_countries)
+  
+  # Plot
+  ggplot(country_data, aes(x = Country, y = Count)) +
+    geom_col(fill = "skyblue", color = "black") +
+    xlab("Country") +
+    ylab("Count") +
+    labs(title = "Clinical Trial Country Distribution",  # Add title
+         caption = "Source: https://clinicaltrials.gov/") +  # Add caption
+    scale_x_discrete(labels = scales::wrap_format(width = 15)) +  # Wrap x-axis labels for better presentation
+    # scale_y_log10() + # Scale y to better see smaller buckets
+    theme_minimal() + # Use a minimal theme
+    theme(axis.text.x = element_text(angle = 45, hjust = 1)) # Rotate x-axis labels for better readability
+}
+```
+- **Parameters:** 
+  - `data` - Dataframe containing the queried results.
+  - `num_top_countries` - Number of top countries to visualize.
+- **Returns:** Bar chart showing country frequencies.
+
+**Through the App:**
+- User navigates to the "Countries" tab and views the histogram.
+
+---
+
+## Feature 3: Filter for Study Status
+
+### Motivation:
+- **Purpose:** Enable users to find studies based on status.
+- **Use Case:** Useful for patients looking to join ongoing studies.
+
+### Description:
+1. **UI Element:**
+   - Drop down filter to narrow search by one or multiple of the 14 study statuses.
+
+### Use:
+
+**Direct Function Call:**
+```R
+# 3. Dropdown input for filtering on status
+      selectizeInput("overall_status", label = h4("Study Status"), 
+                     choices = list("Unknown" = "Unknown status",
+                                    "Completed" = "Completed",
+                                    "Withdrawn" = "Withdrawn",
+                                    "Recruiting" = "Recruiting",
+                                    "Terminated" = "Terminated",
+                                    "Active, not recruiting" = "Active, not recruiting",
+                                    "Suspended" = "Suspended",
+                                    "Enrolling by invitation" = "Enrolling by invitation",
+                                    "Not yet recruiting" = "Not yet recruiting",
+                                    "Withheld" = "Withheld",
+                                    "No longer available" = "No longer available",
+                                    "Approved for marketing" = "Approved for marketing",
+                                    "Available" = "Available",
+                                    "Temporarily not available" = "Temporarily not available"),
+                     multiple = TRUE,
+                     options = list(
+                       placeholder = 'Select status',
+                       style = 'btn-primary',
+                       dropdown = TRUE)
+                     )
+
+
+if (!is.null(input$overall_status)) {
+      ret = ret |>
+        filter(overall_status %in% !!input$overall_status)
+    }
+```
+- **Parameters:** 
+  - `ret` - Dataframe containing the queried results.
+  - `overall_status` - Selected status filters.
+- **Returns:** Filtered dataframe based on specified criteria.
+
+**Through the App:**
+- User uses dropdown to filter studies on the UI.
+
+---
+
+## Feature 4: Filter for FDA Regulation
+
+### Motivation:
+- **Purpose:** Enable users to find studies based on FDA regulation.
+- **Use Case:** Useful for patients looking to join studies involving FDA-regulated drugs and devices.
+
+### Description:
+1. **UI Element:**
+   - New checkbox selections to narrow search by FDA regulated drugs and devices
+
+### Use:
+
+**Direct Function Call:**
+```R
+    # 4. Filter data by FDA Regulated Drug
+    if ("TRUE" %in% input$is_fda_filter) {
+      ret <- ret %>%
+        filter(is_fda_regulated_drug == TRUE)
+    }
+    if ("FALSE" %in% input$is_fda_filter) {
+      ret <- ret %>%
+        filter(is_fda_regulated_drug == FALSE)
+    }
+    
+    # 5. Filter data by FDA Regulated Device
+    if ("TRUE" %in% input$is_fda_device_filter) {
+      ret <- ret %>%
+        filter(is_fda_regulated_device == TRUE)
+    }
+    if ("FALSE" %in% input$is_fda_device_filter) {
+      ret <- ret %>%
+        filter(is_fda_regulated_device == FALSE)
+    }
+```
+- **Parameters:** 
+  - `ret` - Dataframe containing the queried results.
+  - `is_fda_regulated_device` - T/F indicating FDA-regulated device or not.
+  - `is_fda_regulated_drug` - T/F indicating FDA-regulated drug or not.
+- **Returns:** Filtered dataframe based on specified criteria.
+
+**Through the App:**
+- User uses checkboxes to filter studies on the UI.
+
+---
+
+## Feature 5: Visualize Intervention Types
+
+### Motivation:
+- **Purpose:** Enable users to see how many studies are of a particular intervention type.
+- **Use Case:** Useful for patients looking for studies with specific interventions.
+
+### Description:
+1. **UI Element:**
+   - New tab to show a histogram of studies by intervention type.
+
+### Use:
+
+**Direct Function Call:**
+```R
+plot_interventions_histogram = function(data) {
+  ggplot(data, aes(x = intervention_type)) +
+    geom_bar(fill = "skyblue", color = "black") +
+    xlab("Country") +
+    ylab("Frequency") +
+    labs(title = "Clinical Trial Intervention Distribution",  # Add title
+         caption = "Source: https://clinicaltrials.gov/") +  # Add caption
+    theme_minimal() + # Use a minimal theme
+    theme(axis.text.x = element_text(angle = 45, hjust = 1)) # Rotate x-axis labels for better readability
+}
+```
+- **Parameters:** 
+  - `data` - Dataframe containing the queried results.
+- **Returns:** Bar chart showing intervention type frequencies.
+
+**Through the App:**
+- User navigates to the "Interventions" tab and views the histogram.
+---

@@ -1,5 +1,6 @@
 # Summary:
-# This file contains a set of custom utility functions used in the Clinical Trials Query Shiny App. These functions facilitate data querying, filtering, and visualization.
+# This file contains a set of custom utility functions used in the Clinical Trials Query Shiny App. 
+# These functions facilitate data querying, filtering, and visualization.
 
 # Functions:
 # - query_kwds: Queries keywords in a database table and returns filtered results.
@@ -14,7 +15,7 @@
 # - Functions in this file are integral to the 'app.R' Shiny application for clinical trials data exploration.
 
 # Dependencies:
-# - These functions rely on R packages, including 'dplyr,' 'DT,' 'ggplot2,' 'leaflet,' and 'maps.'
+# - These functions rely on R packages, including 'dplyr' 'DT' 'ggplot2'
 # - Ensure that the 'app.R' file has access to these functions.
 
 # Notes:
@@ -29,15 +30,12 @@ library(ggplot2)
 library(tidyr)
 library(purrr)
 library(knitr)
-library(leaflet)
-library(maps)
 
 # Create the connection to a database and "studies" and "sponsors" tables.
-
 con = dbConnect(
   duckdb(
-    file.path("..", "ctgov.duckdb"), # Anmol comment - need this line to run on my end
-    # "ctgov.duckdb", #haha sorry about that! we can remove this line when we're done
+    file.path("..", "ctgov.duckdb"),
+    # "ctgov.duckdb",
     read_only = TRUE
   )
 )
@@ -136,6 +134,8 @@ get_concurrent_trials = function(d) {
   return(all_dates)
 }
 
+#' Create a plot of the concurrent studies in the query
+#' @param studies the database table.
 plot_concurrent_studies = function(studies) {
   studies |>
     select(start_date, completion_date) |>
@@ -152,8 +152,9 @@ plot_concurrent_studies = function(studies) {
 
 #' Create a histogram of the conditions that trials in a query are examining
 #' @param data the database table.
+#' @param num_top_conditions the number conditions the user wants to visualize
 plot_conditions_histogram = function(data, num_top_conditions) {
-  # Find the top 5 most common conditions
+  # Find the top n most common conditions
   x_grouped <- data |>
     group_by(condition_name) |>
     summarize(n=n()) |>
@@ -162,8 +163,10 @@ plot_conditions_histogram = function(data, num_top_conditions) {
   top_conditions <- x_grouped$condition_name |>
     head(num_top_conditions)
   
-  # Create a new column that determines whether the study is in one of those top 5 conditions or not
-  x_grouped$condition_group <- ifelse(x_grouped$condition_name %in% top_conditions, x_grouped$condition_name, "Other")
+  # Create a new column that determines whether the study is in one of those top n conditions or not
+  x_grouped$condition_group <- ifelse(x_grouped$condition_name %in% top_conditions, 
+                                      x_grouped$condition_name, 
+                                      "Other")
   
   # Define a fixed set of conditions
   fixed_conditions <- append(top_conditions, "Other")
@@ -195,8 +198,9 @@ plot_conditions_histogram = function(data, num_top_conditions) {
 
 #' Create a histogram of the countries that trials in a query are coming from
 #' @param data the database table.
+#' @param num_top_countries the number countries the user wants to visualize
 plot_countries_frequency = function(data, num_top_countries) {
-  # Find the top 5 most common countries
+  # Find the top n most common countries
   country_grouped <- data |>
     group_by(country_name) |>
     summarize(n = n()) |>
@@ -205,8 +209,10 @@ plot_countries_frequency = function(data, num_top_countries) {
   top_countries <- country_grouped$country_name |>
     head(num_top_countries)
   
-  # Create a new column that determines whether the study is in one of those top 5 countries or not
-  country_grouped$country_group <- ifelse(country_grouped$country_name %in% top_countries, country_grouped$country_name, "Other")
+  # Create a new column that determines whether the study is in one of those top n countries or not
+  country_grouped$country_group <- ifelse(country_grouped$country_name %in% top_countries, 
+                                          country_grouped$country_name, 
+                                          "Other")
   
   # Define a fixed set of countries
   fixed_countries <- append(top_countries, "Other")
@@ -230,7 +236,7 @@ plot_countries_frequency = function(data, num_top_countries) {
     labs(title = "Clinical Trial Country Distribution",  # Add title
          caption = "Source: https://clinicaltrials.gov/") +  # Add caption
     scale_x_discrete(labels = scales::wrap_format(width = 15)) +  # Wrap x-axis labels for better presentation
-    #scale_y_log10() + # Scale y to better see smaller buckets
+    # scale_y_log10() + # Scale y to better see smaller buckets
     theme_minimal() + # Use a minimal theme
     theme(axis.text.x = element_text(angle = 45, hjust = 1)) # Rotate x-axis labels for better readability
 }
