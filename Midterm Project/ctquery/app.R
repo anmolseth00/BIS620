@@ -79,7 +79,7 @@ ui <- fluidPage(
                                     "Temporarily not available" = "Temporarily not available"),
                      multiple = TRUE,
                      options = list(
-                       placeholder = 'Select stati',
+                       placeholder = 'Select status',
                        style = 'btn-primary',
                        dropdown = TRUE)
                      ),
@@ -100,8 +100,16 @@ ui <- fluidPage(
         type = "tabs",
         tabPanel("Phase", plotOutput("phase_plot")),
         tabPanel("Concurrent", plotOutput("concurrent_plot")),
-        tabPanel("Conditions", plotOutput("conditions_plot")),
-        tabPanel("Countries", plotOutput("countries_plot")),
+        tabPanel("Conditions", plotOutput("conditions_plot"),
+                 div(
+                   numericInput("num_top_conditions", "Number of Top Conditions", value = 5, min = 1, max = 10)
+                 )
+                 ),
+        tabPanel("Countries", plotOutput("countries_plot"),
+                 div(
+                   numericInput("num_top_countries", "Number of Top Countries", value = 5, min = 1, max = 10)
+                    )
+                 ),
         tabPanel("Interventions", plotOutput("interventions_plot"))
       ),
       # Data table to display query results
@@ -186,14 +194,13 @@ server <- function(input, output) {
   # Problem 2: Add a new tab that gives a histogram showing the conditions that trials in a query are examining.
   output$conditions_plot = renderPlot({
     get_studies() |>
-      plot_conditions_histogram()
+      plot_conditions_histogram(input$num_top_conditions)
   })
 
   # 4. Countries histogram
   output$countries_plot = renderPlot({
     get_studies() |>
-      plot_countries_frequency()
-    #plot_countries_frequency_map()
+      plot_countries_frequency(input$num_top_countries)
   })
   
   # 5. Interventions histogram

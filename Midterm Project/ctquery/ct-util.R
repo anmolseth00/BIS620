@@ -36,8 +36,8 @@ library(maps)
 
 con = dbConnect(
   duckdb(
-    #file.path("..", "ctgov.duckdb"), # Anmol comment - need this line to run on my end
-    "ctgov.duckdb", #haha sorry about that! we can remove this line when we're done
+    file.path("..", "ctgov.duckdb"), # Anmol comment - need this line to run on my end
+    # "ctgov.duckdb", #haha sorry about that! we can remove this line when we're done
     read_only = TRUE
   )
 )
@@ -152,7 +152,7 @@ plot_concurrent_studies = function(studies) {
 
 #' Create a histogram of the conditions that trials in a query are examining
 #' @param data the database table.
-plot_conditions_histogram = function(data) {
+plot_conditions_histogram = function(data, num_top_conditions) {
   # Find the top 5 most common conditions
   x_grouped <- data |>
     group_by(condition_name) |>
@@ -160,7 +160,7 @@ plot_conditions_histogram = function(data) {
     arrange(desc(n))
   
   top_conditions <- x_grouped$condition_name |>
-    head(5)
+    head(num_top_conditions)
   
   # Create a new column that determines whether the study is in one of those top 5 conditions or not
   x_grouped$condition_group <- ifelse(x_grouped$condition_name %in% top_conditions, x_grouped$condition_name, "Other")
@@ -195,17 +195,46 @@ plot_conditions_histogram = function(data) {
 
 #' Create a histogram of the countries that trials in a query are coming from
 #' @param data the database table.
-plot_countries_frequency = function(data) {
-  ggplot(data, aes(x = country_name)) +
-    geom_bar(fill = "skyblue", color = "black") +
+plot_countries_frequency = function(data, num_top_countries) {
+  # Find the top 5 most common countries
+  country_grouped <- data |>
+    group_by(country_name) |>
+    summarize(n = n()) |>
+    arrange(desc(n))
+  
+  top_countries <- country_grouped$country_name |>
+    head(num_top_countries)
+  
+  # Create a new column that determines whether the study is in one of those top 5 countries or not
+  country_grouped$country_group <- ifelse(country_grouped$country_name %in% top_countries, country_grouped$country_name, "Other")
+  
+  # Define a fixed set of countries
+  fixed_countries <- append(top_countries, "Other")
+  
+  # Count country frequencies
+  country_counts <- country_grouped |>
+    group_by(country_group)  |>
+    summarize(total = sum(n))
+  
+  # Create a data frame with the fixed countries and their counts
+  country_data <- data.frame(Country = country_counts$country_group, Count = as.numeric(country_counts$total))
+  
+  # Order countries and create labels
+  country_data$Country <- factor(country_data$Country, levels = fixed_countries)
+  
+  # Plot
+  ggplot(country_data, aes(x = Country, y = Count)) +
+    geom_col(fill = "skyblue", color = "black") +
     xlab("Country") +
-    ylab("Frequency") +
+    ylab("Count") +
     labs(title = "Clinical Trial Country Distribution",  # Add title
          caption = "Source: https://clinicaltrials.gov/") +  # Add caption
+    scale_x_discrete(labels = scales::wrap_format(width = 15)) +  # Wrap x-axis labels for better presentation
+    #scale_y_log10() + # Scale y to better see smaller buckets
     theme_minimal() + # Use a minimal theme
     theme(axis.text.x = element_text(angle = 45, hjust = 1)) # Rotate x-axis labels for better readability
-
 }
+
 
 #' Create a histogram of the intervention types that trials in a query are coming from
 #' @param data the database table.
