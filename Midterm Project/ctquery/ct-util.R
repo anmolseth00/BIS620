@@ -204,6 +204,7 @@ plot_countries_frequency = function(data) {
          caption = "Source: https://clinicaltrials.gov/") +  # Add caption
     theme_minimal() + # Use a minimal theme
     theme(axis.text.x = element_text(angle = 45, hjust = 1)) # Rotate x-axis labels for better readability
+
 }
 
 #' Create a histogram of the intervention types that trials in a query are coming from
