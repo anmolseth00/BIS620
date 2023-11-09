@@ -12,6 +12,7 @@ test_that("Phase plot is generated correctly", {
   title <- plot$labels$title
   x <- plot$labels$x
   y <- plot$labels$y
+  bar_color <- plot$layers[[1]]$aes_params$fill
 
   # Expect that the generated plot is a ggplot
   expect_is(plot, "ggplot")
@@ -19,6 +20,7 @@ test_that("Phase plot is generated correctly", {
   expect_equal(title, "Clinical Trial Phase Distribution")
   expect_equal(x, "Phase")
   expect_equal(y, "Count")
+  expect_equal(bar_color, "skyblue")
 })
 
 test_that("Concurrent studies plot is generated correctly", {
@@ -33,6 +35,7 @@ test_that("Concurrent studies plot is generated correctly", {
   title <- plot$labels$title
   x <- plot$labels$x
   y <- plot$labels$y
+  line_color <- plot$layers[[1]]$aes_params$colour
   
   # Expect that the generated plot is a ggplot
   expect_is(plot, "ggplot")
@@ -40,6 +43,7 @@ test_that("Concurrent studies plot is generated correctly", {
   expect_equal(title, "Concurrent Trials Over Time")
   expect_equal(x, "Date")
   expect_equal(y, "Count")
+  expect_equal(line_color, "blue")
 })
 
 test_that("Conditions plot is generated correctly", {
@@ -53,6 +57,7 @@ test_that("Conditions plot is generated correctly", {
   title <- plot$labels$title
   x <- plot$labels$x
   y <- plot$labels$y
+  bar_color <- plot$layers[[1]]$aes_params$fill
   
   # Expect that the generated plot is a ggplot
   expect_is(plot, "ggplot")
@@ -60,6 +65,7 @@ test_that("Conditions plot is generated correctly", {
   expect_equal(title, "Clinical Trial Condition Distribution")
   expect_equal(x, "Condition")
   expect_equal(y, "Count")
+  expect_equal(bar_color, "skyblue")
 })
 
 test_that("Countries plot is generated correctly", {
@@ -74,6 +80,7 @@ test_that("Countries plot is generated correctly", {
   title <- plot$labels$title
   x <- plot$labels$x
   y <- plot$labels$y
+  bar_color <- plot$layers[[1]]$aes_params$fill
   
   # Expect that the generated plot is a ggplot
   expect_is(plot, "ggplot")
@@ -81,6 +88,7 @@ test_that("Countries plot is generated correctly", {
   expect_equal(title, "Clinical Trial Country Distribution")
   expect_equal(x, "Country")
   expect_equal(y, "Count")
+  expect_equal(bar_color, "skyblue")
 })
 
 test_that("Interventions plot is generated correctly", {
@@ -95,6 +103,7 @@ test_that("Interventions plot is generated correctly", {
   title <- plot$labels$title
   x <- plot$labels$x
   y <- plot$labels$y
+  bar_color <- plot$layers[[1]]$aes_params$fill
   
   # Expect that the generated plot is a ggplot
   expect_is(plot, "ggplot")
@@ -102,4 +111,5 @@ test_that("Interventions plot is generated correctly", {
   expect_equal(title, "Clinical Trial Intervention Distribution")
   expect_equal(x, "Intervention")
   expect_equal(y, "Count")
+  expect_equal(bar_color, "skyblue")
 })
