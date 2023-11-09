@@ -9,10 +9,16 @@ test_that("Phase plot is generated correctly", {
   )
   # Generate the phase plot
   plot <- plot_phase_histogram(sample_data)
+  title <- plot$labels$title
+  x <- plot$labels$x
+  y <- plot$labels$y
 
-  # Add expectations to check the plot
+  # Expect that the generated plot is a ggplot
   expect_is(plot, "ggplot")
-  # Add more expectations based on the expected plot characteristics
+  # Expect that the title of the plot corresponds correctly
+  expect_equal(title, "Clinical Trial Phase Distribution")
+  expect_equal(x, "Phase")
+  expect_equal(y, "Count")
 })
 
 test_that("Concurrent studies plot is generated correctly", {
@@ -24,10 +30,16 @@ test_that("Concurrent studies plot is generated correctly", {
   )
   # Generate the concurrent studies plot
   plot <- plot_concurrent_studies(sample_data)
+  title <- plot$labels$title
+  x <- plot$labels$x
+  y <- plot$labels$y
   
-  # Add expectations to check the plot
+  # Expect that the generated plot is a ggplot
   expect_is(plot, "ggplot")
-  # Add more expectations based on the expected plot characteristics
+  # Expect that the title of the plot corresponds correctly
+  expect_equal(title, "Concurrent Trials Over Time")
+  expect_equal(x, "Date")
+  expect_equal(y, "Count")
 })
 
 test_that("Conditions plot is generated correctly", {
@@ -37,11 +49,17 @@ test_that("Conditions plot is generated correctly", {
     condition_name = c("Non Small Cell Lung Carcinoma", "Non Small Cell Lung Carcinoma", "Non Small Cell Lung Carcinoma", "Non Small Cell Lung Carcinoma", "Pain")
   )
   # Generate the conditions plot
-  plot <- plot_conditions_histogram(sample_data)
+  plot <- plot_conditions_histogram(sample_data, 5)
+  title <- plot$labels$title
+  x <- plot$labels$x
+  y <- plot$labels$y
   
-  # Add expectations to check the plot
+  # Expect that the generated plot is a ggplot
   expect_is(plot, "ggplot")
-  # Add more expectations based on the expected plot characteristics
+  # Expect that the title of the plot corresponds correctly
+  expect_equal(title, "Clinical Trial Condition Distribution")
+  expect_equal(x, "Condition")
+  expect_equal(y, "Count")
 })
 
 test_that("Countries plot is generated correctly", {
@@ -51,11 +69,18 @@ test_that("Countries plot is generated correctly", {
     country_name = c("United States", "Canada", "United States", "Puerto Rico", "United Kingdom")
   )
   # Generate the conditions plot
-  plot <- plot_countries_frequency(sample_data)
+  plot <- plot_countries_frequency(sample_data, 5)
+  # Store pieces of information
+  title <- plot$labels$title
+  x <- plot$labels$x
+  y <- plot$labels$y
   
-  # Add expectations to check the plot
+  # Expect that the generated plot is a ggplot
   expect_is(plot, "ggplot")
-  # Add more expectations based on the expected plot characteristics
+  # Expect that the labels of the plot correspond correctly
+  expect_equal(title, "Clinical Trial Country Distribution")
+  expect_equal(x, "Country")
+  expect_equal(y, "Count")
 })
 
 test_that("Interventions plot is generated correctly", {
@@ -66,8 +91,15 @@ test_that("Interventions plot is generated correctly", {
   )
   # Generate the conditions plot
   plot <- plot_interventions_histogram(sample_data)
+  # Store pieces of information
+  title <- plot$labels$title
+  x <- plot$labels$x
+  y <- plot$labels$y
   
-  # Add expectations to check the plot
+  # Expect that the generated plot is a ggplot
   expect_is(plot, "ggplot")
-  # Add more expectations based on the expected plot characteristics
+  # Expect that the title of the plot corresponds correctly
+  expect_equal(title, "Clinical Trial Intervention Distribution")
+  expect_equal(x, "Intervention")
+  expect_equal(y, "Count")
 })
