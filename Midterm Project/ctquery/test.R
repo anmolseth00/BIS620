@@ -4,8 +4,8 @@ source("ct-util.R")
 
 con = dbConnect(
   duckdb(
-    #file.path("..", "ctgov.duckdb"),
-    "ctgov.duckdb",
+    file.path("..", "ctgov.duckdb"),
+    # "ctgov.duckdb",
     read_only = TRUE
   )
 )
