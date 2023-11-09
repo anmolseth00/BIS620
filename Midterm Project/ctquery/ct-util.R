@@ -34,8 +34,8 @@ library(knitr)
 # Create the connection to a database and "studies" and "sponsors" tables.
 con = dbConnect(
   duckdb(
-    # file.path("..", "ctgov.duckdb"),
-    "ctgov.duckdb",
+    file.path("..", "ctgov.duckdb"),
+    # "ctgov.duckdb",
     read_only = TRUE
   )
 )
