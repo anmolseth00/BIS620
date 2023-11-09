@@ -34,8 +34,8 @@ library(knitr)
 # Create the connection to a database and "studies" and "sponsors" tables.
 con = dbConnect(
   duckdb(
-    file.path("..", "ctgov.duckdb"),
-    # "ctgov.duckdb",
+    # file.path("..", "ctgov.duckdb"),
+    "ctgov.duckdb",
     read_only = TRUE
   )
 )
@@ -103,7 +103,6 @@ plot_phase_histogram = function(x) {
     theme_minimal() +  # Use a minimal theme
     theme(axis.text.x = element_text(angle = 45, hjust = 1))  # Rotate x-axis labels for better readability
 }
-
 
 #' Get the number of concurrent trials for each date in a set of studies
 #' @param d the studies to get the number of concurrent trials for.
@@ -175,7 +174,6 @@ plot_conditions_histogram = function(data, num_top_conditions) {
   condition_counts <- x_grouped |>
     group_by(condition_group)  |>
     summarize(total= sum(n))
-  #table(factor(ret$condition_group, levels = fixed_conditions))
   
   # Create a data frame with the fixed conditions and their counts
   condition_data <- data.frame(Condition = condition_counts$condition_group, Count = as.numeric(condition_counts$total))
@@ -236,19 +234,17 @@ plot_countries_frequency = function(data, num_top_countries) {
     labs(title = "Clinical Trial Country Distribution",  # Add title
          caption = "Source: https://clinicaltrials.gov/") +  # Add caption
     scale_x_discrete(labels = scales::wrap_format(width = 15)) +  # Wrap x-axis labels for better presentation
-    # scale_y_log10() + # Scale y to better see smaller buckets
     theme_minimal() + # Use a minimal theme
     theme(axis.text.x = element_text(angle = 45, hjust = 1)) # Rotate x-axis labels for better readability
 }
-
 
 #' Create a histogram of the intervention types that trials in a query are coming from
 #' @param data the database table.
 plot_interventions_histogram = function(data) {
   ggplot(data, aes(x = intervention_type)) +
     geom_bar(fill = "skyblue", color = "black") +
-    xlab("Country") +
-    ylab("Frequency") +
+    xlab("Intervention") +
+    ylab("Count") +
     labs(title = "Clinical Trial Intervention Distribution",  # Add title
          caption = "Source: https://clinicaltrials.gov/") +  # Add caption
     theme_minimal() + # Use a minimal theme
